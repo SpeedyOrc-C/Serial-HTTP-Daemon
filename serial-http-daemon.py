@@ -4,6 +4,8 @@ import argparse
 from http import HTTPStatus
 import http.server
 import serial
+import serial.tools.list_ports
+from typing import Optional
 import urllib
 
 
@@ -76,6 +78,7 @@ def server_main(port: int, device: str) -> None:
     server = http.server.HTTPServer(("", port), Handler)
 
     try:
+        print(f"Daemon server now listening port {port}...")
         server.serve_forever()
     except KeyboardInterrupt:
         serial_connection.close()
@@ -83,6 +86,30 @@ def server_main(port: int, device: str) -> None:
 
 def apple_device(device_id: str) -> str:
     return f"/dev/cu.usbmodem{device_id}"
+
+
+def auto_detect_new_device() -> Optional[str]:
+    input("Please unplug your device now. [ENTER] to continue.")
+
+    old_devices = set(x.device for x in serial.tools.list_ports.comports())
+    input("Please plug it in again. [ENTER] to continue.")
+
+    new_devices = set(x.device for x in serial.tools.list_ports.comports())
+    new_plugged_in_devices = new_devices.difference(old_devices)
+
+    match len(new_plugged_in_devices):
+        case 0:
+            print("Cannot find any new devices.")
+            return None
+
+        case 1:
+            new_device = list(new_plugged_in_devices)[0]
+            print(f"Successfully detected: {new_device}")
+            return new_device
+
+        case _:
+            print(f"Too many new devices.")
+            return None
 
 
 def main() -> int:
@@ -101,16 +128,21 @@ def main() -> int:
 
     args = parser.parse_args()
 
-    if args.port is None or args.device is None:
-        parser.print_help()
-        return 1
-
     port = args.port
 
     if args.mac:
-        device = apple_device(args.device)
+        if args.device is None:
+            print("Please provide your device's ID in \"System Information.app\"")
+            return 2
+        else:
+            device = apple_device(args.device)
     else:
-        device = args.device
+        if args.device is None:
+            device = auto_detect_new_device()
+            if device is None:
+                return 1
+        else:
+            device = args.device
 
     server_main(port, device)
 
