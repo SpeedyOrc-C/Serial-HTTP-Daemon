@@ -9,12 +9,8 @@ Download Python **3.10 or later** [here](https://www.python.org).
 And install the dependencies with this command:
 
 ```shell
-python3 install -r requirements.txt
+pip install -r requirements.txt
 ```
-
-### For Windows users
-
-On Windows, we usually use `python`, instead of `python3`.
 
 ## Run
 
