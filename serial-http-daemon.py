@@ -11,10 +11,12 @@ import urllib
 
 def server_main(port: int, device: str) -> None:
     serial_connection = serial.Serial(device)
+    serial_connection.timeout = 1.0
+    serial_connection.write_timeout = 1.0
 
     class Handler(http.server.BaseHTTPRequestHandler):
 
-        def add_default_header(self):
+        def add_default_header(self) -> None:
             self.send_header("Content-type", "text/plain; charset=utf-8")
             self.send_header("Access-Control-Allow-Origin", "*")
             self.end_headers()
@@ -26,23 +28,23 @@ def server_main(port: int, device: str) -> None:
             self.add_default_header()
             self.wfile.write(str(written_len).encode('utf-8'))
 
-        def serial_read(self, size: int):
+        def serial_read(self, size: int) -> None:
             data = serial_connection.read(size)
 
             self.send_response(HTTPStatus.OK)
             self.add_default_header()
             self.wfile.write(data)
 
-        def not_found(self):
+        def not_found(self) -> None:
             self.send_response(HTTPStatus.NOT_FOUND)
             self.add_default_header()
 
-        def bad_request(self, message: str = ""):
+        def bad_request(self, message: str = "") -> None:
             self.send_response(HTTPStatus.BAD_REQUEST)
             self.add_default_header()
             self.wfile.write(message.encode("utf-8"))
 
-        def do_GET(self):
+        def do_GET(self) -> None:
             url = urllib.parse.urlparse(self.path)
             query = url.query
             params = urllib.parse.parse_qs(query)
@@ -89,10 +91,12 @@ def apple_device(device_id: str) -> str:
 
 
 def auto_detect_new_device() -> Optional[str]:
-    input("Please unplug your device now. [ENTER] to continue.")
+    print("Please keep the device you want to connect unplugged.")
+    input("[ENTER] to continue...")
 
     old_devices = set(x.device for x in serial.tools.list_ports.comports())
-    input("Please plug it in again. [ENTER] to continue.")
+    input("Now plug it in.")
+    input("[ENTER] to continue...")
 
     new_devices = set(x.device for x in serial.tools.list_ports.comports())
     new_plugged_in_devices = new_devices.difference(old_devices)
@@ -108,7 +112,8 @@ def auto_detect_new_device() -> Optional[str]:
             return new_device
 
         case _:
-            print(f"Too many new devices.")
+            print("Too many new devices, please only touch the device you want to connect!")
+            print("So if you have an device connected to a USB dock, don't unplug that USB dock.")
             return None
 
 
